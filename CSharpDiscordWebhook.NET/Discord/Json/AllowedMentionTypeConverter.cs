@@ -11,17 +11,13 @@ namespace CSharpDiscordWebhook.NET.Discord.Json
             string str = reader.GetString();
             if (str == null) return null;
 
-            switch(str.ToLower())
+            return str.ToLower() switch
             {
-                case "users":
-                    return AllowedMentionType.User;
-                case "roles":
-                    return AllowedMentionType.Role;
-                case "everyone":
-                    return AllowedMentionType.Everyone;
-                default:
-                    throw new InvalidOperationException($"Can't read mention type {str}");
-            } 
+                "users" => AllowedMentionType.User,
+                "roles" => AllowedMentionType.Role,
+                "everyone" => AllowedMentionType.Everyone,
+                _ => throw new InvalidOperationException($"Can't read mention type {str}"),
+            };
         }
         public override void Write(Utf8JsonWriter writer, AllowedMentionType value, JsonSerializerOptions options)
             => writer.WriteStringValue(value.ToString());

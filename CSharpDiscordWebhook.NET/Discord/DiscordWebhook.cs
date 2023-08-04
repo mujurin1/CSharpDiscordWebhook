@@ -10,36 +10,62 @@ namespace CSharpDiscordWebhook.NET.Discord;
 
 public class DiscordWebhook
 {
+    internal static readonly HttpClient HttpClient = new();
+
     /// <summary>
     /// Webhook url
     /// </summary>
-    public Uri Uri { get; set; }
+    public string WebhookUrl { get; set; }
+
+    public DiscordWebhook(string webhookUrl = null!)
+    {
+        WebhookUrl = webhookUrl;
+    }
 
     /// <summary>
     /// Send webhook message
     /// </summary>
-    public async Task SendAsync(DiscordMessage message, params FileInfo[] files)
+    public async Task<DiscordResponse> SendAsync(DiscordMessage message, params FileInfo[] files)
     {
-        using HttpClient httpClient = new HttpClient();
+        return await PostOrPatch(message, files);
+    }
 
-        string bound = "------------------------" + DateTime.Now.Ticks.ToString("x");
+    public async Task<DiscordResponse> EditAsync(DiscordResponse response, params FileInfo[] files)
+    {
+        return await PostOrPatch(DiscordMessage.FromResponse(response), files, response.Id);
+    }
 
-        MultipartFormDataContent httpContent = new MultipartFormDataContent(bound);
+    public async Task DeleteAsync()
+    {
+        await HttpClient.DeleteAsync(WebhookUrl);
+    }
+
+    private async Task<DiscordResponse> PostOrPatch(DiscordMessage message, FileInfo[] files, string? messageId = null)
+    {
+        string bound = $"------------------------{DateTime.Now.Ticks:x}";
+
+        var httpContent = new MultipartFormDataContent(bound);
 
         foreach (var file in files)
         {
-            ByteArrayContent fileContent = new ByteArrayContent(await File.ReadAllBytesAsync(file.FullName));
+            var fileContent = new ByteArrayContent(await File.ReadAllBytesAsync(file.FullName));
             fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
             httpContent.Add(fileContent, file.Name, file.Name);
         }
 
-        StringContent jsonContent = new StringContent(JsonSerializer.Serialize(message, JSON_SETTINGS));
+        var jsonContent = new StringContent(JsonSerializer.Serialize(message, JSON_SETTINGS));
         jsonContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
         httpContent.Add(jsonContent, "payload_json");
 
-        HttpResponseMessage response = await httpClient.PostAsync(Uri, httpContent);
+        var response = string.IsNullOrWhiteSpace(messageId)
+            ? await HttpClient.PostAsync($"{WebhookUrl}?wait=true", httpContent)
+            : await HttpClient.PatchAsync($"{WebhookUrl}/messages/{messageId}", httpContent);
+
         if (!response.IsSuccessStatusCode)
             throw new Exception(await response.Content.ReadAsStringAsync());
+
+        var result = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<DiscordResponse>(result, JSON_SETTINGS)!;
     }
 
     private static readonly JsonSerializerOptions JSON_SETTINGS = new()
