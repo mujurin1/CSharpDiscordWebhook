@@ -48,7 +48,7 @@ namespace CSharpDiscordWebhook.NET.Discord
         public string EditedTimestamp { get; set; } = null!;
 
         // flags: 0;
-        public int Flags { get; set; }
+        public DiscordMessageFlag Flags { get; set; }
 
         // components:[];
         public object[] Components { get; set; } = null!;

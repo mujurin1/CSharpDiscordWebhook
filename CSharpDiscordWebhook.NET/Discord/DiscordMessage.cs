@@ -31,6 +31,13 @@ namespace CSharpDiscordWebhook.NET.Discord
         public List<DiscordEmbed>? Embeds { get; set; }
 
         /// <summary>
+        /// message flags combined as a bitfield
+        /// <see href="https://discord.com/developers/docs/resources/webhook#execute-webhook-jsonform-params">(only SUPPRESS_EMBEDS can be set)</see>
+        /// <para>(But you can also use SUPPRESS_NOTIFICATIONS)</para>
+        /// </summary>
+        public DiscordMessageFlag Flags { get; set; }
+
+        /// <summary>
         /// Allowed mentions for the message
         /// </summary>
         public AllowedMention? AllowedMentions { get; set; }
